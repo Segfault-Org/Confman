@@ -18,7 +18,7 @@ jobs:
           graalvm-version: 20.2.0
           java-version: java11
           
-      - run: ./gradlew.sh :nativeImage
+      - run: ./gradlew :nativeImage
             
       - name: Create Release
         id: create_release
