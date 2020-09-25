@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,7 +34,10 @@ public final class Confman {
         boolean skipCheck = false;
         final String rawPath = args[args.length - 1];
 
-        for (final String arg : args) {
+        final Iterator<String> argsIterator = Arrays.asList(args).iterator();
+        GlobalResultReport.ReportOutputType reportOutputType = GlobalResultReport.ReportOutputType.CONSOLE;
+        while (argsIterator.hasNext()) {
+            final String arg = argsIterator.next();
             switch (arg) {
                 case "--dry-run":
                     dryRun = true;
@@ -45,6 +48,25 @@ public final class Confman {
                 case "--help":
                     printHelp();
                     return;
+                case "--report":
+                    final String outType = argsIterator.next();
+                    switch (outType.toLowerCase()) {
+                        case "json":
+                            reportOutputType = GlobalResultReport.ReportOutputType.JSON;
+                            break;
+                        case "console":
+                            reportOutputType = GlobalResultReport.ReportOutputType.CONSOLE;
+                            break;
+                        case "none":
+                            reportOutputType = GlobalResultReport.ReportOutputType.NONE;
+                            break;
+                        default:
+                            System.err.println("Unknown output type: " + outType);
+                            printHelp();
+                            System.exit(1);
+                            return;
+                    }
+                    break;
                 default:
                     if (arg.equals(rawPath)) break;
                     System.err.println("Unknown argument: " + arg);
@@ -59,10 +81,16 @@ public final class Confman {
             System.out.println("Starting at: " + start);
         }
 
+        Integer exitAfter = null;
         try {
             run(resolve(read(start), start), skipCheck, dryRun);
         } catch (ExitCodeException e) {
-            System.exit(e.code);
+            exitAfter = e.code;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            mReport.report(reportOutputType, System.out);
+            if (exitAfter != null) System.exit(exitAfter);
         }
     }
 
@@ -86,6 +114,14 @@ public final class Confman {
             System.out.println("= GLOBAL STAGE: RESOLVING =");
         }
         return ini.stream()
+                // Sort here so the execution order is kept in global report.
+                .sorted((o1, o2) -> {
+                    final String shortPath1 = o1.getAbsolutePath()
+                            .substring(start.getAbsolutePath().length() + 1 /* Remove leading / */);
+                    final String shortPath2 = o2.getAbsolutePath()
+                            .substring(start.getAbsolutePath().length() + 1 /* Remove leading / */);
+                    return shortPath1.compareTo(shortPath2);
+                })
                 .map(file -> {
                     return mReport.enterStage(file, GlobalResultReport.ItemStageType.RESOLVE, () -> {
                         try {
@@ -102,7 +138,6 @@ public final class Confman {
                         }
                     });
                 })
-                .sorted(Comparator.comparing(ConfItem::toString))
                 .collect(Collectors.toList());
     }
 
@@ -239,6 +274,7 @@ public final class Confman {
         System.out.println("  --dry-run: Only perform verify and check");
         System.out.println("  --skip-check: Skip checking [Dangerous!]");
         System.out.println("  --help: Show this help");
+        System.out.println("  --report: Final report type (possible values: console, json, none)");
     }
 
     private static class ExitCodeException extends Exception {
