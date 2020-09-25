@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+    id 'org.mikeneck.graalvm-native-image' version 'v0.8.0'
+}
+
+group 'segfault'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    // AutoValue
+    def autoValueVersion = "1.7.4"
+    compile "com.google.auto.value:auto-value-annotations:${autoValueVersion}"
+    annotationProcessor "com.google.auto.value:auto-value:${autoValueVersion}"
+
+    // Annotation
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+
+    // INI
+    compile 'org.ini4j:ini4j:0.5.4'
+}
+
+nativeImage {
+    graalVmHome = System.getProperty('java.home')
+    mainClass = 'segfault.confman.Confman'
+    executableName = 'confman'
+    outputDirectory = file("$buildDir/bin")
+    arguments(
+            '--no-fallback',
+            '--no-server',
+            "-H:ReflectionConfigurationFiles=$projectDir/reflect.json"
+    )
+}
+
+generateNativeImageConfig {
+    enabled = true
+}

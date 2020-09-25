@@ -1,0 +1,58 @@
+[
+  {
+    "name": "org.ini4j.spi.IniParser",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.IniBuilder",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.BeanTool",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.EscapeTool",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.IniFormatter",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.IniSource",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.OptionsBuilder",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.OptionsFormatter",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.OptionsParser",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.RegBuilder",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.RegEscapeTool",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.TypeValuesPair",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.UnicodeInputStreamReader",
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.ini4j.spi.WinEscapeTool",
+    "allPublicConstructors": true
+  }
+]
