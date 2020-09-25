@@ -245,7 +245,7 @@ public final class Confman {
 
 
                 // Post-hook
-                r = mReport.enterStage(ini, GlobalResultReport.ItemStageType.PRE_HOOK, () -> {
+                r = mReport.enterStage(ini, GlobalResultReport.ItemStageType.POST_HOOK, () -> {
                     if (GlobalConfig.get().DEBUG) {
                         System.out.println("Running post-exec hook...");
                     }
