@@ -16,4 +16,9 @@ public abstract class TaskRunner {
     public abstract int before();
     public abstract int run();
     public abstract int after();
+
+    @Nonnull
+    public final ConfItemEnvironment getEnv() {
+        return mEnv;
+    }
 }

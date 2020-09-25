@@ -3,10 +3,10 @@ package segfault.confman;
 import segfault.confman.confpkg.ConfItem;
 import segfault.confman.confpkg.ConfItemEnvironment;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public final class Confman {
+    private static final GlobalResultReport mReport = new GlobalResultReport();
     public static void main(@Nullable String... args) throws Throwable {
         GlobalConfig.set(new GlobalConfig(System.getenv().containsKey("DEBUG")));
         if (GlobalConfig.get().DEBUG) {
@@ -58,26 +59,59 @@ public final class Confman {
             System.out.println("Starting at: " + start);
         }
 
-        final List<ConfItem> tasks = Files.walk(start.toPath())
+        try {
+            run(resolve(read(start), start), skipCheck, dryRun);
+        } catch (ExitCodeException e) {
+            System.exit(e.code);
+        }
+    }
+
+    @Nonnull
+    private static List<File> read(@Nonnull File start) throws Throwable {
+        // Global stage: Reading
+        if (GlobalConfig.get().DEBUG) {
+            System.out.println("= GLOBAL STAGE: READING =");
+        }
+        return Files.walk(start.toPath())
                 .map(Path::toFile)
                 .filter(File::isFile)
                 .filter(file -> file.getName().toLowerCase().matches("\\d\\d-.*\\.ini"))
+                .collect(Collectors.toList());
+    }
+
+    private static List<ConfItem> resolve(@Nonnull List<File> ini, @Nonnull File start) throws Throwable {
+        // Global stage: Resolving
+        if (GlobalConfig.get().DEBUG) {
+            System.out.println();
+            System.out.println("= GLOBAL STAGE: RESOLVING =");
+        }
+        return ini.stream()
                 .map(file -> {
-                    try {
-                        if (GlobalConfig.get().DEBUG) {
-                            System.out.println();
-                            System.out.println("Resolving " + file);
+                    return mReport.enterStage(file, GlobalResultReport.ItemStageType.RESOLVE, () -> {
+                        try {
+                            if (GlobalConfig.get().DEBUG) {
+                                System.out.println();
+                                System.out.println("Resolving " + file);
+                            }
+                            final ConfItemEnvironment env = ConfItemEnvironment.resolve(file, start);
+                            final ConfItem item = new ConfItem(env);
+                            return new GlobalResultReport.ResultPair<>(GlobalResultReport.StageStatus.SUCCESS, item);
+                        } catch (IOException | IllegalStateException e) {
+                            System.err.println("Cannot resolve " + file.getAbsolutePath() + ": " + e.getMessage());
+                            throw new RuntimeException(e);
                         }
-                        return ConfItemEnvironment.resolve(file, start);
-                    } catch (IOException | IllegalStateException e) {
-                        System.err.println("Cannot resolve " + file.getAbsolutePath() + ": " + e.getMessage());
-                        System.exit(1);
-                        throw new RuntimeException();
-                    }
+                    });
                 })
-                .map(ConfItem::new)
                 .sorted(Comparator.comparing(ConfItem::toString))
                 .collect(Collectors.toList());
+    }
+
+    private static void run(@Nonnull List<ConfItem> tasks, boolean skipCheck, boolean dryRun) throws Throwable {
+        // Global stage: Running
+        if (GlobalConfig.get().DEBUG) {
+            System.out.println();
+            System.out.println("= GLOBAL STAGE: RUNNING =");
+        }
         if (GlobalConfig.get().DEBUG) {
             System.out.println();
             System.out.println("Tasks:");
@@ -89,62 +123,106 @@ public final class Confman {
                 System.out.println();
                 System.out.println("=== Running " + item.toString() + " ===");
             }
+            final File ini = item.getEnv().arguments().getFile();
             int r;
             // Conditions
-            if (GlobalConfig.get().DEBUG) {
-                System.out.println("Verifying conditions...");
-            }
-            r = item.verify();
+            r = mReport.enterStage(ini, GlobalResultReport.ItemStageType.VERIFY, () -> {
+                if (GlobalConfig.get().DEBUG) {
+                    System.out.println("Verifying conditions...");
+                }
+                final int res = item.verify();
+                return new GlobalResultReport.ResultPair<>(res == 0 ? GlobalResultReport.StageStatus.SUCCESS :
+                        GlobalResultReport.StageStatus.FAILURE, res);
+            });
             if (r != 0) {
                 System.err.println("Failed verifying " + item.toString());
-                System.exit(0);
+                // Skip the following.
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.CHECK, GlobalResultReport.StageStatus.SKIPPED);
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.PRE_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.RUN, GlobalResultReport.StageStatus.SKIPPED);
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.POST_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+                // Stop here.
+                break;
             }
 
             // Check
-            if (!skipCheck) {
-                if (GlobalConfig.get().DEBUG) {
-                    System.out.println("Checking...");
-                }
-                r = item.check();
+            if (skipCheck) {
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.CHECK, GlobalResultReport.StageStatus.SKIPPED);
+            } else {
+                r = mReport.enterStage(ini, GlobalResultReport.ItemStageType.CHECK, () -> {
+                    if (GlobalConfig.get().DEBUG) {
+                        System.out.println("Checking...");
+                    }
+                    final int res = item.check();
+                    return new GlobalResultReport.ResultPair<>(res == 0 ? GlobalResultReport.StageStatus.SUCCESS :
+                            GlobalResultReport.StageStatus.FAILURE, res);
+                });
                 if (r != 0) {
                     System.err.println("Failed checking " + item.toString());
-                    System.exit(r);
-                    return;
+                    // Skip the following.
+                    mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.PRE_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+                    mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.RUN, GlobalResultReport.StageStatus.SKIPPED);
+                    mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.POST_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+                    // Stop the whole process
+                    throw new ExitCodeException(r);
                 }
             }
 
-            if (!dryRun) {
+            if (dryRun) {
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.PRE_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.RUN, GlobalResultReport.StageStatus.SKIPPED);
+                mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.POST_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+            } else {
                 // Pre-hook
-                if (GlobalConfig.get().DEBUG) {
-                    System.out.println("Running pre-exec hook...");
-                }
-                r = item.before();
+                r = mReport.enterStage(ini, GlobalResultReport.ItemStageType.PRE_HOOK, () -> {
+                    if (GlobalConfig.get().DEBUG) {
+                        System.out.println("Running pre-exec hook...");
+                    }
+                    final int res = item.before();
+                    return new GlobalResultReport.ResultPair<>(res == 0 ? GlobalResultReport.StageStatus.SUCCESS :
+                            GlobalResultReport.StageStatus.FAILURE, res);
+                });
                 if (r != 0) {
                     System.err.println("Failed running pre-exec hook of " + item.toString());
-                    System.exit(r);
-                    return;
+                    // Skip the following.
+                    mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.RUN, GlobalResultReport.StageStatus.SKIPPED);
+                    mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.POST_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+                    // Stop the whole process
+                    throw new ExitCodeException(r);
                 }
 
                 // Run
-                if (GlobalConfig.get().DEBUG) {
-                    System.out.println("Running...");
-                }
-                r = item.run();
+                r = mReport.enterStage(ini, GlobalResultReport.ItemStageType.RUN, () -> {
+                    if (GlobalConfig.get().DEBUG) {
+                        System.out.println("Running...");
+                    }
+                    final int res = item.run();
+                    return new GlobalResultReport.ResultPair<>(res == 0 ? GlobalResultReport.StageStatus.SUCCESS :
+                            GlobalResultReport.StageStatus.FAILURE, res);
+                });
                 if (r != 0) {
                     System.err.println("Failed to run " + item.toString());
-                    System.exit(r);
-                    return;
+                    // Skip the following.
+                    mReport.setStageStatus(ini, GlobalResultReport.ItemStageType.POST_HOOK, GlobalResultReport.StageStatus.SKIPPED);
+                    // Stop the whole process
+                    throw new ExitCodeException(r);
                 }
 
+
                 // Post-hook
-                if (GlobalConfig.get().DEBUG) {
-                    System.out.println("Running post-exec hook...");
-                }
-                r = item.after();
+                r = mReport.enterStage(ini, GlobalResultReport.ItemStageType.PRE_HOOK, () -> {
+                    if (GlobalConfig.get().DEBUG) {
+                        System.out.println("Running post-exec hook...");
+                    }
+                    final int res = item.after();
+                    return new GlobalResultReport.ResultPair<>(res == 0 ? GlobalResultReport.StageStatus.SUCCESS :
+                            GlobalResultReport.StageStatus.FAILURE, res);
+                });
                 if (r != 0) {
                     System.err.println("Failed running post-exec hook of " + item.toString());
-                    System.exit(r);
-                    return;
+                    // Skip the following.
+                    // Stop the whole process
+                    throw new ExitCodeException(r);
                 }
             }
 
@@ -161,5 +239,13 @@ public final class Confman {
         System.out.println("  --dry-run: Only perform verify and check");
         System.out.println("  --skip-check: Skip checking [Dangerous!]");
         System.out.println("  --help: Show this help");
+    }
+
+    private static class ExitCodeException extends Exception {
+        private final int code;
+
+        public ExitCodeException(int code) {
+            this.code = code;
+        }
     }
 }
