@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: rinx/setup-graalvm-ce@v0.0.1
+        with:
+          graalvm-version: 20.2.0
+          java-version: java11
+          
+      - run: ./gradlew.sh :nativeImage
+            
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.set_sha.outputs.sha_short }}
+          release_name: Release ${{ steps.set_sha.outputs.sha_short }}
+          body: Automatic release
+
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: ./build/bin/confman
+          asset_name: confman_linux_amd64_glibc
+          asset_content_type: application/x-elf
