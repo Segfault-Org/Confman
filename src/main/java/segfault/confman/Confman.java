@@ -22,6 +22,7 @@ public final class Confman {
         }
         if (args == null || args.length < 1) {
             System.err.println("Error: invalid number of args.");
+            printHelp();
             System.exit(1);
         }
         if (GlobalConfig.get().DEBUG) {
@@ -40,9 +41,13 @@ public final class Confman {
                 case "--skip-check":
                     skipCheck = true;
                     break;
+                case "--help":
+                    printHelp();
+                    return;
                 default:
                     if (arg.equals(rawPath)) break;
                     System.err.println("Unknown argument: " + arg);
+                    printHelp();
                     System.exit(1);
                     return;
             }
@@ -147,5 +152,14 @@ public final class Confman {
                 System.out.println("Done.");
             }
         }
+    }
+
+    private static void printHelp() {
+        System.out.println("Usage: confman [Options] <path to your config package>");
+        System.out.println();
+        System.out.println("Options:");
+        System.out.println("  --dry-run: Only perform verify and check");
+        System.out.println("  --skip-check: Skip checking [Dangerous!]");
+        System.out.println("  --help: Show this help");
     }
 }
