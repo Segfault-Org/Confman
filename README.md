@@ -119,10 +119,11 @@ If any item fails (can be either a failure in check, or a failure in hooks, or a
 
 Each item will run in the following order:
 
-1. Check: Perform a dry-run, to check if there would be no problem doing actual changes.
-2. Pre-exec hook: Do some preparation. This will make changes to your system.
-3. Run: Actually run.
-4. Post-exec hook: Do some cleanup. This will make changes to your system.
+1. Verify: Perform a dry-run, to check if the environment is OK for applying. Return a non-zero value to skip this item. This will not make changes.
+2. Check: Perform a dry-run, to check if there would be no problem doing actual changes.
+3. Pre-exec hook: Do some preparation. This will make changes to your system.
+4. Run: Actually run.
+5. Post-exec hook: Do some cleanup. This will make changes to your system.
 
 If any of them fails, the whole item is marked as fail, and following items will not run.
 
@@ -138,7 +139,13 @@ Action = install / delete / mkdir / patch / exec
 # This is helpful when creating folders (set item to . to avoid creating additional files)
 Item = .
 
+# Environment and condition verify. 
+
 # For all scripts below, %file will be replaced with the path to your file in package
+
+# Environment and condition verify. It's similar to ExecCheck, which should also not do any changes. The difference is, if it returns a non-zero value, an error message is printed, but other items will process normally. This enables you to check if the environment is eligible for the item.
+ExecVerify = ./verify.sh
+
 # Your custom additional check script. Exit 0 if check passed.
 ExecCheck = ./relate/path/to/your/custom/environment\ checking\ script.sh
 

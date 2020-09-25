@@ -9,6 +9,9 @@ public abstract class TaskRunner {
         this.mEnv = env;
     }
 
+    public int verify() {
+        return 0;
+    }
     public abstract int check();
     public abstract int before();
     public abstract int run();

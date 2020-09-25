@@ -76,11 +76,23 @@ public final class Confman {
         }
 
         for (final ConfItem item : tasks) {
-            // Check
-            int r;
             if (GlobalConfig.get().DEBUG) {
                 System.out.println();
                 System.out.println("=== Running " + item.toString() + " ===");
+            }
+            int r;
+            // Conditions
+            if (GlobalConfig.get().DEBUG) {
+                System.out.println("Verifying conditions...");
+            }
+            r = item.verify();
+            if (r != 0) {
+                System.err.println("Failed verifying " + item.toString());
+                System.exit(0);
+            }
+
+            // Check
+            if (GlobalConfig.get().DEBUG) {
                 System.out.println("Checking...");
             }
             r = item.check();

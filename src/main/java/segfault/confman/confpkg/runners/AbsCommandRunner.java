@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 public abstract class AbsCommandRunner extends TaskRunner {
+    private final String mVerifyCommand;
     private final String mCheckCommand;
     private final String mBeforeCommand;
     private final String mRunCommand;
@@ -20,11 +21,27 @@ public abstract class AbsCommandRunner extends TaskRunner {
                             @Nullable String beforeCommand,
                             @Nullable String runCommand,
                             @Nullable String afterCommand) {
+        this(env, null, checkCommand, beforeCommand, runCommand, afterCommand);
+    }
+
+    public AbsCommandRunner(@Nonnull ConfItemEnvironment env,
+                            @Nullable String verifyCommand,
+                            @Nullable String checkCommand,
+                            @Nullable String beforeCommand,
+                            @Nullable String runCommand,
+                            @Nullable String afterCommand) {
         super(env);
+        mVerifyCommand = verifyCommand;
         mCheckCommand = checkCommand;
         mBeforeCommand = beforeCommand;
         mRunCommand = runCommand;
         mAfterCommand = afterCommand;
+    }
+
+    @Override
+    public int verify() {
+        if (mVerifyCommand != null) return exec(mVerifyCommand);
+        return super.verify();
     }
 
     @Override

@@ -29,6 +29,23 @@ public final class ConfItem extends TaskRunner {
     }
 
     @Override
+    public final int verify() {
+        if (GlobalConfig.get().DEBUG) {
+            System.out.println("Performing condition verification");
+        }
+        int r;
+        r = mHookRunner.verify();
+        if (r != 0) {
+            System.err.println("Verify function in hook returns a failure: " + r);
+            return r;
+        }
+        if (GlobalConfig.get().DEBUG) {
+            System.out.println("Verification is executed successfully");
+        }
+        return r;
+    }
+
+    @Override
     public final int check() {
         if (GlobalConfig.get().DEBUG) {
             System.out.println("Performing check");
