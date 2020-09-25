@@ -39,12 +39,17 @@ public class ExternalProcess {
 
     @Deprecated
     public static int exec(@Nonnull String command, @Nullable Map<String, String> env, @Nullable File dir) {
+        return exec(splitCommandBySpace(command), env, dir);
+    }
+
+    @Nonnull
+    public static String[] splitCommandBySpace(@Nonnull String command) {
         final StringTokenizer st = new StringTokenizer(command);
         final String[] cmdarray = new String[st.countTokens()];
 
         for(int i = 0; st.hasMoreTokens(); ++i) {
             cmdarray[i] = st.nextToken();
         }
-        return exec(cmdarray, env, dir);
+        return cmdarray;
     }
 }

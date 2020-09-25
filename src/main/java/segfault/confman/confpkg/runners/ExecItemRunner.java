@@ -8,10 +8,11 @@ import javax.annotation.Nonnull;
 public class ExecItemRunner extends AbsCommandRunner {
     public ExecItemRunner(@Nonnull ConfItemEnvironment env) {
         super(env,
+                null /* verifyCommand */,
                 null /* checkCommand: custom check */,
                 null /* beforeCommand: no need of before hook */,
-                env.item().getAbsolutePath() + " " +
-                env.getArgument("Exec", "Args", null),
+                new String[]{ env.item().getAbsolutePath(),
+                env.getArgument("Exec", "Args", null)},
                 null /* afterCommand: no need of after hook */);
     }
 
