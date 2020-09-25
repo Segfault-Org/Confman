@@ -101,10 +101,10 @@ public final class Confman {
             }
 
             // Check
-            if (GlobalConfig.get().DEBUG) {
-                System.out.println("Checking...");
-            }
             if (!skipCheck) {
+                if (GlobalConfig.get().DEBUG) {
+                    System.out.println("Checking...");
+                }
                 r = item.check();
                 if (r != 0) {
                     System.err.println("Failed checking " + item.toString());
