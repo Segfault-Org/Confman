@@ -5,7 +5,10 @@ import segfault.confman.confpkg.ConfItemEnvironment;
 import segfault.confman.confpkg.TaskRunner;
 
 import javax.annotation.Nonnull;
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.channels.FileLock;
 
 public abstract class AbsWriteFileRunner extends TaskRunner {
@@ -68,8 +71,8 @@ public abstract class AbsWriteFileRunner extends TaskRunner {
                     // Stop here. We only need to test the closest existing parent folder.
                     if (GlobalConfig.get().DEBUG) {
                         System.out.println(currentlyTest + " passed all tests. Stopping loop.");
-                        break;
                     }
+                    break;
                 }
             }
             currentlyTest = currentlyTest.getParentFile();
