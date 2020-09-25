@@ -12,7 +12,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
+      
+      - name: Set sha
+        id: set_sha
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      
       - name: setup GraalVM
         uses: DeLaGuardo/setup-graalvm@2.0
         with:
