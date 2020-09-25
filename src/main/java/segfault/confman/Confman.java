@@ -29,12 +29,16 @@ public final class Confman {
         }
 
         boolean dryRun = false;
+        boolean skipCheck = false;
         final String rawPath = args[args.length - 1];
 
         for (final String arg : args) {
             switch (arg) {
                 case "--dry-run":
                     dryRun = true;
+                    break;
+                case "--skip-check":
+                    skipCheck = true;
                     break;
                 default:
                     if (arg.equals(rawPath)) break;
@@ -95,11 +99,13 @@ public final class Confman {
             if (GlobalConfig.get().DEBUG) {
                 System.out.println("Checking...");
             }
-            r = item.check();
-            if (r != 0) {
-                System.err.println("Failed checking " + item.toString());
-                System.exit(r);
-                return;
+            if (!skipCheck) {
+                r = item.check();
+                if (r != 0) {
+                    System.err.println("Failed checking " + item.toString());
+                    System.exit(r);
+                    return;
+                }
             }
 
             if (!dryRun) {
