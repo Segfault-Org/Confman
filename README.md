@@ -33,21 +33,10 @@ A typical workload would be to enable a setting in `sshd_config`. For example:
 Port 9022
 ```
 
-You can quickly edit it by hand if there is only one or a few machines. However, if you have ten or more machines, it would be hard to manage. 
-
-If you are using Confman, you will need a folder with the same name of the target system. Remember: everything is a file, and Confman configurations are just like overlays of the system.
+If you are using Confman, you will need a patch with a describing ini only:
 
 ```
-$ mkdir config_change_port
-$ cd config_change_port
-
-$ mkdir -p etc/ssh
-$ cd etc/ssh
-```
-
-Now, create a patch comparing the original `sshd_config` to the new `sshd_config`. An example would be:
-
-```
+$ cat ./config_package/etc/ssh/01-sshd_config
 --- Example
 +++ ./sshd_config	2020-09-xx xx:xx:xx.046149134 -xxxx
 @@ -10,7 +10,7 @@
@@ -59,55 +48,32 @@ Now, create a patch comparing the original `sshd_config` to the new `sshd_config
  #AddressFamily any
  #ListenAddress 0.0.0.0
  #ListenAddress ::
-```
 
-put it to `config_change_port/etc/ssh`, naming it exactly as `01-sshd_config`, with no extensions (but with a leading order number). Remember, configuration in Confman is like overlays.
+$ cat ./config_package/etc/ssh/01-sshd_config.ini
+[Item]
+Action = patch
 
-```shell
-$ cd config_change_port
-$ tree .
-.
+ExecAfter = systemctl restart sshd
+
+$ tree ./config_package/
+config_package
 └── etc
     └── ssh
         └── 01-sshd_config
+        └── 01-sshd_config.ini
 ```
 
-After changing the sshd config, you also need to restart the service. Confman can help you to do that via post-execution hooks. 
+That's it. The folder `config_package` is your Confman package. You can create a NFS or Samba or whatever network share, so it is distributed over the network.
 
-Now create a metadata file telling Confman what `sshd_config` is, how to apply patches, and what to do after that.
-
-```
-$ cat etc/ssh/01-sshd_config.ini
-[Item]
-
-# What action to do?
-# Available currently: mkdir / install / delete / patch / exec
-Action = patch
-
-# Post execution hook
-ExecAfter = systemctl restart sshd
-```
-
-That's it. The folder `config_change_port` is your Confman package. You can create a NFS or Samba or whatever network share, so it is distributed over the network.
-
-Now, execute (without root!):
+Now, execute:
 
 ```
-$ confman --dry-run ./config_change_port/
+$ sudo confman --dry-run ./config_package/
+# Returns 0, means that there will be no error(s) in production execution
+
+# Now the magic
+$ sudo confman ./config_package/
 ```
-
-This tells Confman to perform a dry-run, which does the following:
-
-* Checks whether `patch` utility exists in `$PATH`
-* Checks whether `/etc/ssh/sshd_config` exists
-* Checks whether we have write permission to `/etc/ssh/sshd_config`
-* Checks whether `/etc/ssh/sshd_config` can apply your patch
-
-If all of the conditions match, Confman will return zero, without output. Otherwise, detailed output is printed.
-
-You will receive an error of telling you `/etc/ssh/sshd_config` cannot be written. Re-run Confman with root will solve this.
-
-If you found everything is OK, remove `--dry-run` and run again with root, the new sshd configuration will be applied.
 
 ## Docs
 
@@ -131,53 +97,26 @@ The full syntax of `ini` is the following:
 
 ```
 [Item]
-# Action of the config. 
-Action = install / delete / mkdir / patch / exec
+Action = install / delete / mkdir / patch / exec / (path to your extension)
+# ActionVerb = 
+# Item = .
+# ExecVerify = ./verify.sh
+# ExecCheck = ./relate/path/to/your/custom/environment\ checking\ script.sh
+# ExecBefore = ./will_be_ran_before_executing.sh %file 
+# ExecAfter = ./will_be_ran_if_success.sh
 
-# Point to your custom config file. 
-# In default, the file will be the same name as your ini (without ini extension)
-# This is helpful when creating folders (set item to . to avoid creating additional files)
-Item = .
+# [Install]
+# Force = false
 
-# Environment and condition verify. 
+# [Delete]
+# ContinueWhenNotExist = false
 
-# For all scripts below, %file will be replaced with the path to your file in package
+# [Mkdir]
+# Force = false
 
-# Environment and condition verify. It's similar to ExecCheck, which should also not do any changes. The difference is, if it returns a non-zero value, an error message is printed, but other items will process normally. This enables you to check if the environment is eligible for the item.
-ExecVerify = ./verify.sh
+# [Patch]
 
-# Your custom additional check script. Exit 0 if check passed.
-ExecCheck = ./relate/path/to/your/custom/environment\ checking\ script.sh
-
-# Your custom pre-exec script. Exit 0 to continue.
-ExecBefore = ./will_be_ran_before_executing.sh %file 
-
-# Your custom post-exec script. Exit 0 to indicate a success.
-ExecAfter = ./will_be_ran_if_success.sh
-
-# Only works if Action = install
-# Intall: copy the file to the system.
-[Install]
-# Override the existing file.
-Force = false
-
-# Only works if Action = delete
-[Delete]
-# Do not report an error when checking if the file does not exist.
-ContinueWhenNotExist = false
-
-# Only works if Action = mkdir
-[Mkdir]
-# Does not report an error when checking if the folder exists.
-Force = false
-
-# Only works if Action = patch
-[Patch]
-# No options available
-
-# Only works if Action = exec
-[Exec]
-# No options available
+# [Exec]
 ```
 
 ## TODO
@@ -185,8 +124,6 @@ Force = false
 * Testing
 
 * Rewrite in C
-
-* Support more builtin and external actions (extensions)
 
 # License
 
