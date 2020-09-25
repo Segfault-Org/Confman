@@ -10,7 +10,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Map;
 
 @AutoValue
 public abstract class ConfItemEnvironment {
@@ -119,8 +118,8 @@ public abstract class ConfItemEnvironment {
                 runner = new PatchItemRunner(this);
                 break;
             default:
-                // TODO: External runner
-                throw new IllegalStateException("Unknown action " + action());
+                runner = new ExternalItemRunner(this);
+                break;
         }
         if (GlobalConfig.get().DEBUG) {
             System.out.println("Matched runner: " + runner.getClass().getName());
