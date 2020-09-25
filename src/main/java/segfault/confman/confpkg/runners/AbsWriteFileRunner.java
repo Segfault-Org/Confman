@@ -48,40 +48,11 @@ public abstract class AbsWriteFileRunner extends TaskRunner {
             System.out.println(mTarget + " passed existence check.");
         }
 
-        // Test if we can write to sysFile.
-        File currentlyTest = mTarget;
-        while (true) {
-            if (!currentlyTest.exists()) {
-                if (GlobalConfig.get().DEBUG) {
-                    System.out.println(currentlyTest + " does not exist. We will mkdir later.");
-                }
-            } else {
-                if (currentlyTest == mTarget) {
-                    if (!currentlyTest.canWrite()) {
-                        // This should never happen since we had already performed the permission test above.
-                        throw new IllegalStateException("BUG");
-                    }
-                } else if (currentlyTest.isFile()) {
-                    System.err.println(currentlyTest + " should be a folder (the parent folder of the target), but is a file.");
-                    return -2;
-                } else if (!currentlyTest.canWrite()) {
-                    System.err.println(currentlyTest + " is a parent folder but we cannot write to it.");
-                    return -2;
-                } else {
-                    // Stop here. We only need to test the closest existing parent folder.
-                    if (GlobalConfig.get().DEBUG) {
-                        System.out.println(currentlyTest + " passed all tests. Stopping loop.");
-                    }
-                    break;
-                }
-            }
-            currentlyTest = currentlyTest.getParentFile();
-            if (currentlyTest == null) {
-                if (GlobalConfig.get().DEBUG) {
-                    System.out.println("Reached the root.");
-                }
-                break;
-            }
+        // Test if the parent folder exists.
+        final File parent = mTarget.getParentFile();
+        if (parent != null && !parent.exists()) {
+            System.err.println("The parent folder " + parent + " does not exist");
+            return 2;
         }
         if (GlobalConfig.get().DEBUG) {
             System.out.println("All tests passed.");
