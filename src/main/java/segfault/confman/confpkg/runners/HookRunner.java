@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 public final class HookRunner extends AbsCommandRunner {
     public HookRunner(@Nonnull ConfItemEnvironment env) {
         super(env,
+                patchCmd(env.getArgument("Item", "ExecVerify", null), env),
                 patchCmd(env.getArgument("Item", "ExecCheck", null), env),
                 patchCmd(env.getArgument("Item", "ExecBefore", null), env),
                 null /* runCommand */,
