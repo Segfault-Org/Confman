@@ -77,47 +77,7 @@ $ sudo confman ./config_package/
 
 ## Docs
 
-After reading the example, you now have some basic concepts of how Confman works. For every file, you need an actual file with a `ini` file regarding to it.
-
-Files wil be proceeded one by one, with your custom order. Each one is proceeded by an extension, defined in `Action` option. Currently only built-in actions are supported, but we are adding support to external actions.
-
-If any item fails (can be either a failure in check, or a failure in hooks, or a failure during running), following items will not run.
-
-Each item will run in the following order:
-
-1. Verify: Perform a dry-run, to check if the environment is OK for applying. Return a non-zero value to skip this item. This will not make changes.
-2. Check: Perform a dry-run, to check if there would be no problem doing actual changes.
-3. Pre-exec hook: Do some preparation. This will make changes to your system.
-4. Run: Actually run.
-5. Post-exec hook: Do some cleanup. This will make changes to your system.
-
-If any of them fails, the whole item is marked as fail, and following items will not run.
-
-The full syntax of `ini` is the following:
-
-```
-[Item]
-Action = install / delete / mkdir / patch / exec / (path to your extension)
-# ActionVerb = 
-# Item = .
-# ExecVerify = ./verify.sh
-# ExecCheck = ./relate/path/to/your/custom/environment\ checking\ script.sh
-# ExecBefore = ./will_be_ran_before_executing.sh %file 
-# ExecAfter = ./will_be_ran_if_success.sh
-
-# [Install]
-# Force = false
-
-# [Delete]
-# ContinueWhenNotExist = false
-
-# [Mkdir]
-# Force = false
-
-# [Patch]
-
-# [Exec]
-```
+Refer to Wiki.
 
 ## TODO
 
