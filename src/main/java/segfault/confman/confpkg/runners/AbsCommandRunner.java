@@ -37,7 +37,6 @@ public abstract class AbsCommandRunner extends TaskRunner {
         this(env, null, checkCommand, beforeCommand, runCommand, afterCommand);
     }
 
-    @Deprecated
     public AbsCommandRunner(@Nonnull ConfItemEnvironment env,
                             @Nullable String verifyCommand,
                             @Nullable String checkCommand,
@@ -45,11 +44,11 @@ public abstract class AbsCommandRunner extends TaskRunner {
                             @Nullable String runCommand,
                             @Nullable String afterCommand) {
         this(env,
-                splitCommandBySpace(verifyCommand),
-                splitCommandBySpace(checkCommand),
-                splitCommandBySpace(beforeCommand),
-                splitCommandBySpace(runCommand),
-                splitCommandBySpace(afterCommand));
+                wrapWithShell(verifyCommand),
+                wrapWithShell(checkCommand),
+                wrapWithShell(beforeCommand),
+                wrapWithShell(runCommand),
+                wrapWithShell(afterCommand));
     }
 
     @Override
@@ -87,8 +86,8 @@ public abstract class AbsCommandRunner extends TaskRunner {
     }
 
     @Nullable
-    private static String[] splitCommandBySpace(@Nullable String command) {
+    private static String[] wrapWithShell(@Nullable String command) {
         if (command == null) return null;
-        return ExternalProcess.splitCommandBySpace(command);
+        return ExternalProcess.wrapWithShell(command);
     }
 }

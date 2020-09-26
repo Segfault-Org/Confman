@@ -37,6 +37,17 @@ public class ExternalProcess {
         }
     }
 
+    public static int execShell(@Nonnull String command, @Nullable Map<String, String> env, @Nullable File dir) {
+        return exec(wrapWithShell(command),
+                env,
+                dir);
+    }
+
+    @Nonnull
+    public static String[] wrapWithShell(@Nonnull String command) {
+        return new String[]{"sh", "-c", command};
+    }
+
     @Deprecated
     public static int exec(@Nonnull String command, @Nullable Map<String, String> env, @Nullable File dir) {
         return exec(splitCommandBySpace(command), env, dir);
